@@ -1,117 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Document</title>
-    <script src="js/pixi.min.js"></script>
-</head>
-<body>
-    <script > 
-let xmlContent ="";
-fetch("fireworks.xml").then((response)=>{
-    response.text().then((xml)=>{
+    <script src="js/pixi-legacy.min.js"></script>
+  </head>
+  <body>
+    <script>
+      let xmlContent = "";
+      fetch("fireworks.xml").then((response) => {
+        response.text().then((xml) => {
+          let parser = new DOMParser();
+          xmlContent = xml;
+          let xmlDOM = parser.parseFromString(xmlContent, "application/xml");
+          let fireworksXML = xmlDOM.querySelectorAll("Firework");
+          // console.log(fireworksXML[0]);
+          //console.log(fireworksXML[6]);
+          // console.log(fireworksXML[3].children[0].getAttributeNames());
+          //console.log(fireworksXML[3].children.length);
+          //console.log(fireworksXML[0].getAttribute("begin"));
+          //  console.log(Object.keys(fireworksXML[0]));
 
-let parser = new DOMParser();
-xmlContent= xml;
-let xmlDOM =parser.parseFromString(xmlContent, 'application/xml');
-let fireworksXML = xmlDOM.querySelectorAll('Firework');
-console.log(fireworksXML[0].children[0].getAttributeNames())
-console.log(fireworksXML[0].getAttributeNames())
-console.log(fireworksXML[0].getAttribute("begin"))
-console.log(Object.keys(fireworksXML[0]))
-    })
-});
-    
-        let width = 1024;
-        let height = 768;
-        const renderer = PIXI.autoDetectRenderer(width, height, {
-          transparent: true
-        });
-        
-        renderer.autoResize = true;
-        renderer.resize(width, height);
+          let velX = 0;
+          let VelY = 0;
+          for (let i = 0; i < fireworksXML.length; i++) {
+            const textureRocket = PIXI.Texture.fromImage(
+              "assets/assets/rocket.png"
+            );
+            const textureFountain = PIXI.Texture.fromImage(
+              "assets/assets/fountain.png"
+            );
+            const texture = "";
 
+            const particles = [];
+            let spriteColour = fireworksXML[i].getAttribute("colour");
 
-        const stage = new PIXI.Container();
-        document.body.appendChild(renderer.view);
-        const textureRocket = PIXI.Texture.fromImage('assets/assets/rocket.png');
-        const textureFountain = PIXI.Texture.fromImage('assets/assets/fountain.png');
+            class Particle {
+              constructor() {
+                this.sprite = new PIXI.Sprite(
+                  fireworksXML[i].getAttribute("type") === "fountain"
+                    ? textureFountain
+                    : textureRocket
+                );
+                this.sprite.scale.x = 0.4;
+                this.sprite.scale.y = 0.4;
+                this.velocity = { x: 0, y: 0 };
+                this.sprite.tint = spriteColour;
+              }
 
-        const particles = [];
-        
-        class Particle {
-          constructor() {
-            this.sprite = new PIXI.Sprite(textureRocket);
-            this.sprite.scale.x = 0.4;
-            this.sprite.scale.y = 0.4;
-            this.velocity = {x: 0, y: 0};
-          }
-          
-          setPosition(pos) {
-            this.sprite.position.x = pos.x;
-            this.sprite.position.y = pos.y;
-          }
-          
-          setVelocity(vel) {
-            this.velocity = vel;
-          }
-          
-          update() {
-            this.sprite.position.x += this.velocity.x;
-            this.sprite.position.y += this.velocity.y;
-            if (this.toExplode && !this.exploded) {
-              // explode
-              if (this.sprite.position.y < height/2) {
-                this.sprite.alpha = 0;
-                this.exploded = true;
-                explode(this.sprite.position);
+              setPosition(pos) {
+                this.sprite.position.x = pos.x;
+                this.sprite.position.y = pos.y;
+              }
+
+              setVelocity(vel) {
+                this.velocity = vel;
+              }
+
+              update() {
+                this.sprite.position.y += this.velocity.y;
+                //this.sprite.position.x += this.velocity.x;
+
+                if (this.toExplode && !this.exploded) {
+                  // explode
+                  if (this.sprite.position.y < height / 2) {
+                    this.sprite.alpha = 0;
+                    this.exploded = true;
+                    explode(this.sprite.position, this.velocity);
+                  }
+                }
+
+                if (this.fade) {
+                  this.sprite.alpha -= 0.01;
+                }
               }
             }
-            
-            if (this.fade) {
-              this.sprite.alpha -= 0.01;
-            }
+
+            const explode = (position) => {
+              const steps = 20;
+              const radius = 4;
+              for (var i = 0; i < steps; i++) {
+                // get velocity
+                const x = radius * Math.cos((2 * Math.PI * i) / steps);
+                const y = radius * Math.sin((2 * Math.PI * i) / steps);
+                // add particle
+                const particle = new Particle();
+                particle.fade = true;
+                particle.setPosition(position);
+                particle.setVelocity({ x, y });
+                stage.addChild(particle.sprite);
+                particles.push(particle);
+              }
+            };
+
+            const launchParticle = () => {
+              const particle = new Particle();
+              let positionX = parseInt(
+                fireworksXML[i].children[0].getAttribute("x")
+              );
+
+              let positionY = parseInt(
+                fireworksXML[i].children[0].getAttribute("y")
+              );
+              // console.log(positionY);
+              // console.log(positionX);
+
+              particle.setPosition({ x: positionX, y: height });
+
+              // particle.setVelocity({ x: -0.4, y: -1.6 });
+
+              if (fireworksXML[i].children.length === 2) {
+                let velX = parseInt(
+                  fireworksXML[i].children[1].getAttribute("x")
+                );
+                let velY = parseInt(
+                  fireworksXML[i].children[1].getAttribute("y")
+                );
+
+                particle.setVelocity({
+                  x: velX,
+                  y: velY,
+                });
+              } else {
+                particle.setVelocity({ x: -0.4, y: -1.6 });
+              }
+
+              particle.toExplode = true;
+              stage.addChild(particle.sprite);
+              particles.push(particle);
+            };
+
+            const loop = () => {
+              requestAnimationFrame(loop);
+              for (var i = 0, l = particles.length; i < l; i++) {
+                particles[i].update();
+              }
+              renderer.render(stage);
+            };
+
+            let launchTime = parseInt(fireworksXML[i].getAttribute("duration"));
+            setTimeout(launchParticle, launchTime);
+            loop();
           }
-        }
-        
-        const explode = (position) => {
-          const steps = 20;
-          const radius = 4;
-          for (var i = 0; i < steps; i++) {
-            // get velocity
-            const x = radius * Math.cos(2 * Math.PI * i / steps);
-            const y = radius * Math.sin(2 * Math.PI * i / steps);
-            // add particle
-            const particle = new Particle();
-            particle.fade = true;
-            particle.setPosition(position);
-            particle.setVelocity({x, y});
-            stage.addChild(particle.sprite);
-            particles.push(particle);
-          }
-        }
-        
-        const launchParticle = () => {
-          const particle = new Particle();
-          particle.setPosition({x: width/2, y: height});
-          particle.setVelocity({x: -0.4, y: -1.6});
-          particle.toExplode = true;
-          stage.addChild(particle.sprite);
-          particles.push(particle);
-        }
-        
-        const loop = () => {
-          requestAnimationFrame(loop);
-          for (var i = 0, l = particles.length; i < l; i++) {
-            particles[i].update();  
-          }
-          renderer.render(stage);
-        }
-        
-        launchParticle();
-        loop();
-        </script>
-</body>
+          // console.log(fireworksXML[i]);
+        });
+      });
+
+      let width = 1024;
+      let height = 768;
+      const renderer = PIXI.autoDetectRenderer(width, height, {
+        transparent: true,
+      });
+
+      renderer.autoResize = true;
+      renderer.resize(width, height);
+
+      const stage = new PIXI.Container();
+      document.body.appendChild(renderer.view);
+    </script>
+  </body>
 </html>

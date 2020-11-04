@@ -30,22 +30,20 @@
               "assets/assets/rocket.png"
             );
             const textureFountain = PIXI.Texture.fromImage(
-              "assets/assets/fountain.png"
+              "assets/assets/particle.png"
             );
-            const texture = "";
-
             const particles = [];
+            console.log(fireworksXML[i].getAttribute("type") === "Rocket");
             let spriteColour = fireworksXML[i].getAttribute("colour");
-
             class Particle {
               constructor() {
                 this.sprite = new PIXI.Sprite(
-                  fireworksXML[i].getAttribute("type") === "fountain"
-                    ? textureFountain
-                    : textureRocket
+                  fireworksXML[i].getAttribute("type") === "Rocket"
+                    ? textureRocket
+                    : textureFountain
                 );
-                this.sprite.scale.x = 0.4;
-                this.sprite.scale.y = 0.4;
+                this.sprite.scale.x = 0.8;
+                this.sprite.scale.y = 0.8;
                 this.velocity = { x: 0, y: 0 };
                 this.sprite.tint = spriteColour;
               }
@@ -61,7 +59,7 @@
 
               update() {
                 this.sprite.position.y += this.velocity.y;
-                //this.sprite.position.x += this.velocity.x;
+                this.sprite.position.x += this.velocity.x;
 
                 if (this.toExplode && !this.exploded) {
                   // explode
@@ -107,7 +105,10 @@
               // console.log(positionY);
               // console.log(positionX);
 
-              particle.setPosition({ x: positionX, y: height });
+              particle.setPosition({
+                x: width / 2 + positionX,
+                y: height,
+              });
 
               // particle.setVelocity({ x: -0.4, y: -1.6 });
 
